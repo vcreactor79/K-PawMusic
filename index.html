@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>K-Paw · 음악 프롬프트 컴파일러</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1F1A20; --bg2:#181318; --surface:#2A222C; --surface2:#332839;
+    --line:#3A3040; --text:#F1E8DC; --muted:#A99CA0;
+    --amber:#E9A94F; --amber-hi:#F2BC6B; --amber-glow:rgba(233,169,79,.16);
+    --sage:#93A98E; --rose:#D69A96;
+    --display:'Quicksand',system-ui,sans-serif;
+    --body:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    --mono:ui-monospace,Menlo,Consolas,monospace;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 60% at 50% -10%, rgba(233,169,79,.10), transparent 60%),
+      var(--bg);
+    color:var(--text); font-family:var(--body); line-height:1.6;
+    padding:max(20px,env(safe-area-inset-top)) 18px 64px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:660px; margin:0 auto}
+
+  header{text-align:center; padding:14px 0 22px}
+  .mark{font-size:32px; line-height:1}
+  .brand{font-family:var(--display); font-weight:700; font-size:30px;
+    letter-spacing:.5px; margin:8px 0 2px}
+  .brand .paw{color:var(--amber)}
+  .tagline{color:var(--muted); font-size:14px; margin:0}
+
+  .card{background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius); padding:20px}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:460px){.grid{grid-template-columns:1fr}}
+  .field{display:flex; flex-direction:column; gap:6px}
+  .field.full{grid-column:1 / -1}
+  label{font-size:12px; font-weight:600; color:var(--muted);
+    letter-spacing:.4px; text-transform:uppercase}
+  .hint{font-size:12px; color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0}
+  select, input[type=text]{
+    appearance:none; -webkit-appearance:none; width:100%;
+    background:var(--bg2); color:var(--text); font-family:var(--body); font-size:16px;
+    border:1px solid var(--line); border-radius:11px; padding:12px 13px;
+  }
+  select{
+    padding-right:34px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'><path d='M1 1l5 5 5-5' stroke='%23A99CA0' stroke-width='1.6' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 14px center;
+  }
+  input[type=text]::placeholder{color:#6f636b}
+  select:focus-visible, input:focus-visible{outline:2px solid var(--amber); outline-offset:1px}
+
+  .compile{
+    grid-column:1 / -1; margin-top:6px; position:relative;
+    background:linear-gradient(180deg,var(--amber-hi),var(--amber));
+    color:#3A2708; font-family:var(--display); font-weight:700; font-size:18px;
+    border:none; border-radius:13px; padding:15px; cursor:pointer;
+    box-shadow:0 0 0 0 var(--amber-glow); transition:box-shadow .3s,transform .06s;
+  }
+  .compile:hover{box-shadow:0 0 34px 2px var(--amber-glow)}
+  .compile:active{transform:translateY(1px)}
+  .compile:focus-visible{outline:2px solid var(--amber-hi); outline-offset:3px}
+
+  #out{margin-top:22px; display:none}
+  #out.show{display:block; animation:rise .4s ease both}
+  @keyframes rise{from{opacity:0; transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .resolved{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
+  .chip{background:var(--surface2); border:1px solid var(--line);
+    color:var(--text); font-size:13px; font-weight:600;
+    padding:6px 12px; border-radius:999px}
+  .chip .k{color:var(--amber)}
+  .chip.pl{color:var(--sage)}
+
+  .note{background:rgba(214,154,150,.10); border:1px solid rgba(214,154,150,.35);
+    color:#F0D8D5; font-size:13.5px; border-radius:12px; padding:12px 14px; margin-bottom:16px}
+
+  .sec-label{font-family:var(--display); font-weight:700; font-size:13px;
+    letter-spacing:1.5px; text-transform:uppercase; color:var(--amber);
+    margin:22px 2px 10px}
+  .sec-label:first-child{margin-top:4px}
+
+  .block{background:var(--surface); border:1px solid var(--line);
+    border-radius:13px; padding:14px; margin-bottom:12px}
+  .block-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
+  .block-title{font-size:12px; font-weight:700; letter-spacing:.4px;
+    text-transform:uppercase; color:var(--muted)}
+  .copy{background:var(--surface2); color:var(--text); border:1px solid var(--line);
+    font-family:var(--body); font-size:12.5px; font-weight:600;
+    padding:6px 12px; border-radius:9px; cursor:pointer; white-space:nowrap;
+    transition:background .15s,color .15s}
+  .copy:hover{background:var(--line)}
+  .copy:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+  .copy.done{background:var(--sage); color:#173218; border-color:var(--sage)}
+
+  .content{font-family:var(--mono); font-size:13px; color:var(--text);
+    white-space:pre-wrap; word-break:break-word; margin:0}
+  .content.ko{font-family:var(--body); font-size:14px}
+  .settings{display:flex; gap:16px; flex-wrap:wrap; font-size:13.5px; color:var(--muted)}
+  .settings b{color:var(--text); font-weight:600}
+  .tags{display:flex; flex-wrap:wrap; gap:6px}
+  .tag{background:var(--bg2); border:1px solid var(--line); color:var(--text);
+    font-size:12.5px; padding:4px 9px; border-radius:8px}
+
+  .downloads{margin-top:18px; display:flex; gap:10px; flex-wrap:wrap}
+  .ghost{background:transparent; color:var(--amber); border:1px solid var(--amber);
+    font-family:var(--body); font-weight:600; font-size:13.5px;
+    padding:10px 16px; border-radius:11px; cursor:pointer}
+  .ghost:hover{background:var(--amber-glow)}
+
+  .rolehint{color:var(--muted); font-size:12px; margin:2px 2px 12px}
+  footer{color:var(--muted); font-size:12px; text-align:center;
+    margin-top:34px; line-height:1.7}
+  footer b{color:var(--sage)}
+
+  @media (prefers-reduced-motion:reduce){
+    #out.show{animation:none}
+    .compile{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark">🐾🌙</div>
+    <h1 class="brand"><span class="paw">K</span>-Paw</h1>
+    <p class="tagline">상황을 고르면 음악 프롬프트가 완성됩니다</p>
+  </header>
+
+  <div class="card">
+    <div class="grid">
+      <div class="field"><label for="animal">대상</label><select id="animal"></select></div>
+      <div class="field"><label for="age">나이</label><select id="age"></select></div>
+      <div class="field full"><label for="situation">상황</label><select id="situation"></select></div>
+      <div class="field full"><label for="role">역할 <span class="hint">· 3시간 구성 단계</span></label><select id="role"></select></div>
+      <div class="field full">
+        <label for="detail">세부 상황 <span class="hint">· 자유 입력, 비워도 됨</span></label>
+        <input type="text" id="detail" placeholder="예: 비 오는 창가에서 낮잠 / 손님이 왔을 때">
+      </div>
+      <div class="field full"><label for="emotion">감정 상태</label><select id="emotion"></select></div>
+      <button class="compile" id="go">컴파일 ✨</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>
+    Suno에서 2:30~3:00 클립을 여러 개 만들어 3시간 영상으로 합치는 방식 기준입니다.<br>
+    정직 설계 내장 — 설명문은 “연구에 착안” 표현만 쓰고, 의학적 단정은 넣지 않으며
+    <b>의학 면책·AI 고지</b>가 항상 포함됩니다.<br>
+    K-Paw Music Engine · 웹 컴파일러 v1.2 · 역할(Arrival·Resting·Deep Rest) 반영
+  </footer>
+</div>
+
+<script>
+/* ================= 컴파일러 코어 ================= */
+const DNA = {
+  suno: {
+    styles: "K-Paw Signature Sound, calming ambient, low felt piano, warm cello, soft viola, gentle harp, warm analog pads, deep relaxation, healing, instrumental, peaceful, minimal, cinematic ambient, nature inspired, soft acoustic textures",
+    exclude: "vocals, drums, edm, rock, trap, dubstep, heavy bass, metal, cinematic climax, aggressive, fast tempo, bright bells, sharp synths, glitch, distorted sounds",
+    weirdness: 30, style_influence: 90, instrumental: true
+  },
+  bpm_min: 58, bpm_max: 62,
+  keys: { primary: "F Major", secondary: "D Major" },
+  instruments: {
+    main: ["low felt piano"], harmony: ["warm cello", "soft viola"],
+    texture: ["warm analog pad"], accent: ["gentle harp (sparse, mid register)"]
+  }
+};
+// 3시간 구성 역할 — Production Guide §3·§4 기준 (역할별 BPM 창 + Suno 방향 + 구간 가이드)
+const ROLES = {
+  arrival:   { code:"A", name_en:"Arrival",   label_ko:"Arrival · 도입",        mode:"Calm Awake",
+    bpm_base:60, bpm_min:58, bpm_max:62, section_ko:"첫 20~30분 · 승인 4곡",
+    dir:"Arrival role — warm and familiar opening, gentle low felt piano motif, low melodic density, predictable long phrases, no dramatic introduction, no final cadence, soft unresolved ending" },
+  resting:   { code:"R", name_en:"Resting",   label_ko:"Resting · 안정",        mode:"Calm Awake / Rest",
+    bpm_base:58, bpm_min:56, bpm_max:60, section_ko:"중간 80~100분 · 승인 10곡",
+    dir:"Resting role — stable resting section, limited melodic range, subtle evolving repetition, consistent instrumentation, restrained dynamics, no new instrument introduction, no emotional rise, no closing gesture" },
+  deep_rest: { code:"D", name_en:"Deep Rest", label_ko:"Deep Rest · 깊은 휴식",   mode:"Rest and Sleep",
+    bpm_base:55, bpm_min:52, bpm_max:58, section_ko:"마지막 50~70분 · 승인 6곡",
+    dir:"Deep Rest role — nearly free-flowing, very low melodic density, sustained warm viola and cello textures, sparse low felt piano, minimal attack, no audible pulse, no bright upper register, no cadence, seamless loop-friendly ending" }
+};
+const SITUATIONS = {
+  car_ride: { label:"Car Ride", playlist:"이동/차량", base:{
+    scene:"A dog is riding in the car with the owner nearby, quiet streets passing by outside the window.", dog_emotion:"Slightly nervous but willing to trust.", musical_goal:"Reduce travel anxiety and create a feeling of safety during the drive.", sound_design:"extremely subtle natural ambience", bpm:59, nature:["subtle ambience"], ending:"The dog feels calm and emotionally secure during the ride." }},
+  home_alone: { label:"Home Alone", playlist:"분리불안/혼자 있을 때", base:{
+    scene:"The owner has left and the home is quiet and still, afternoon light moving slowly across the floor.", dog_emotion:"Missing the owner, a little restless.", musical_goal:"Ease separation anxiety and provide a sense of companionship through the day.", sound_design:"very subtle room ambience", bpm:59, nature:["soft breeze"], ending:"The dog settles, feeling safe and accompanied until the owner returns." }},
+  with_owner: { label:"With Owner", playlist:"집사와 함께/일상 힐링", base:{
+    scene:"The dog rests peacefully beside its owner during a calm everyday moment at home, the owner reading or relaxing nearby.", dog_emotion:"Content, safe, and relaxed next to the owner.", musical_goal:"Deepen the shared calm between dog and owner and make ordinary time together feel warm and restful.", sound_design:"warm, intimate, gentle presence", bpm:60, nature:["soft room ambience"], ending:"Both dog and owner feel unhurried, close, and at ease." }},
+  thunder: { label:"Thunder & Storm", playlist:"천둥/불안 진정", base:{
+    scene:"A thunderstorm rolls outside. The dog is indoors in a safe, warm space with the owner or a familiar blanket.", dog_emotion:"Frightened and hyper-alert to the thunder.", musical_goal:"Provide a steady, grounding sound that masks startling thunder and restores a sense of safety.", sound_design:"a warm low grounding drone under the music, soft rain", bpm:58, nature:["soft steady rain"], ending:"The dog's alertness lowers and the body relaxes despite the storm." }},
+  vet_visit: { label:"Vet Visit", playlist:"병원/긴장 완화", base:{
+    scene:"The dog waits in a veterinary clinic among unfamiliar smells and sounds.", dog_emotion:"Tense and watchful.", musical_goal:"Lower baseline tension and give the owner a calming anchor to share.", sound_design:"very minimal, warm and enveloping", bpm:59, nature:["subtle ambience"], ending:"The dog's breathing slows and shoulders soften." }},
+  sleep: { label:"Sleep", playlist:"수면/딥 릴랙스", base:{
+    scene:"Late night. Lights are low and the household is winding down for sleep.", dog_emotion:"Drowsy and ready to rest.", musical_goal:"Guide the dog and owner into deep, uninterrupted sleep.", sound_design:"long sustained pads, minimal movement", bpm:58, nature:["very soft night ambience"], ending:"Both dog and owner drift into deep sleep." }}
+};
+const MODS = {
+  animal: {
+    dog: { bpm_delta:0, add_sound:[], note:"" },
+    cat: { bpm_delta:2, add_sound:["soft high harp harmonics","gentle purr-tempo pulse"], note:"고양이 음악은 개 음악의 재탕이 아닙니다. 고양이는 자기 종의 발성·그르렁 템포에 더 반응하는 경향이 있어, 진지하게 운영하려면 cat 전용 사운드로 별도 튜닝하는 것이 좋습니다." }
+  },
+  age: {
+    default:{ bpm_delta:0, composition_add:"" },
+    puppy:  { bpm_delta:1, composition_add:"even gentler phrasing, trust-building, extra warmth" },
+    adult:  { bpm_delta:0, composition_add:"" },
+    senior: { bpm_delta:-1, composition_add:"lower register emphasis, longer sustains, minimal movement" }
+  },
+  emotion: {
+    default:      { composition_add:"" },
+    calm:         { composition_add:"" },
+    mild_anxiety: { composition_add:"extra repetition, very steady pulse, no surprises" },
+    fear:         { composition_add:"grounding low drone, maximal predictability, mask startling sounds" },
+    sleepy:       { bpm_delta:-1, composition_add:"slower phrases, fading movement toward sleep" },
+    curious:      { composition_add:"gentle forward motion, reassuring resolution" }
+  },
+  // 길이 고정: Suno 클립을 여러 개 만들어 3시간 영상으로 조립
+  duration: { long:{ target_minutes:180, label_ko:"3시간" } }
+};
+const clampBpm = v => Math.max(DNA.bpm_min, Math.min(DNA.bpm_max, v));
+
+function krTitle(key, sit, animalKo){
+  const hooks={
+    thunder:`천둥 무서워하는 ${animalKo}를 위한 진정 음악`,
+    home_alone:`혼자 있는 ${animalKo}를 위한 분리불안 진정 음악`,
+    with_owner:`집사와 함께 듣는 ${animalKo} 일상 힐링 음악`,
+    car_ride:`차 타는 ${animalKo}를 위한 멀미·불안 완화 음악`,
+    vet_visit:`병원 가는 ${animalKo}의 긴장을 풀어주는 음악`,
+    sleep:`${animalKo}가 깊이 잠드는 수면 음악`
+  };
+  const hook=hooks[key]||`${animalKo}를 위한 ${sit.label} 힐링 음악`;
+  return `${hook} 3시간 | K-Paw`.slice(0,80);
+}
+function seoKeywords(key, animalKo){
+  const base=[`${animalKo} 음악`,`${animalKo} 수면 음악`,`${animalKo} 진정 음악`,"반려동물 음악","펫 힐링 음악","dog relaxing music","dog sleep music","calming music for dogs","pet relaxation"];
+  const extra={
+    thunder:["강아지 천둥 무서워","천둥 진정 음악","dog thunderstorm anxiety"],
+    home_alone:["강아지 분리불안","혼자 있는 강아지","dog separation anxiety"],
+    with_owner:["강아지와 함께 듣는 음악","반려동물 일상 음악","relaxing music with your dog"],
+    car_ride:["강아지 차멀미","강아지 차 타기","dog car ride calm"],
+    vet_visit:["강아지 병원 스트레스","vet visit calm"],
+    sleep:["강아지 깊은 잠","deep sleep music for dogs"]
+  };
+  return base.concat(extra[key]||[]);
+}
+function hashtags(key, animalKo){
+  const base=[`#${animalKo}음악`,"#반려동물음악","#펫힐링","#dogmusic","#petrelaxation"];
+  const extra={thunder:["#천둥진정"],home_alone:["#분리불안"],with_owner:["#집사와함께","#일상힐링"],car_ride:["#차멀미"],sleep:["#수면음악"],vet_visit:["#병원긴장완화"]};
+  return base.concat(extra[key]||[]);
+}
+function thumbText(key){
+  const m={thunder:"천둥도 무섭지 않게",home_alone:"혼자여도 괜찮아",with_owner:"함께하는 시간",car_ride:"편안한 드라이브",vet_visit:"병원 가는 길, 편안하게",sleep:"깊은 잠으로"};
+  return `${m[key]||"함께 쉬어요"}\n3시간`;
+}
+function description(title, sceneText, animalKo){
+  return `${title}\n\n이 영상은 ${sceneText} 이런 상황의 ${animalKo}와 보호자를 위해 만든 K-Paw의 3시간 힐링 사운드입니다. 느린 템포와 예측 가능한 반복 구조, 부드러운 중저역 음색 등 반려동물 청각·행동 연구에서 관찰된 원칙에 착안해 설계했습니다.\n\n▶ 사용 팁\n· 볼륨은 대화 소리보다 작게, 배경으로 은은하게 틀어주세요.\n· 외출 전이나 취침 전 미리 틀어두면 좋습니다.\n· 보호자가 함께 들어도 편안하도록 만들었습니다.\n\n※ 이 음악은 의학적 치료가 아니며, 편안한 환경 조성을 돕기 위한 것입니다. 심한 불안 문제는 수의사와 상담하세요.\n※ 본 콘텐츠의 음원·영상은 AI 도구를 활용해 제작하고 사람이 편집·검수했습니다.`;
+}
+
+function compileKpaw(animal, situation, detail, emotion, age="default", roleKey="resting"){
+  const sit=SITUATIONS[situation]; const base=sit.base;
+  const amod=MODS.animal[animal]||MODS.animal.dog;
+  const gmod=MODS.age[age]||MODS.age.default;
+  const emod=MODS.emotion[emotion]||MODS.emotion.default;
+  const dmod=MODS.duration.long;
+  const role=ROLES[roleKey]||ROLES.resting;
+
+  // 역할이 BPM 창을 결정하고, 상황별 상대 템포 성향(기준 60 대비)을 그 안에서 유지
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const sitOffset=(base.bpm||60)-60;
+  const bpm=clamp(role.bpm_base+sitOffset+amod.bpm_delta+gmod.bpm_delta+(emod.bpm_delta||0), role.bpm_min, role.bpm_max);
+  const ambience=(base.nature||[]).join(", ");
+  const instruments=[...DNA.instruments.main,...DNA.instruments.harmony,...DNA.instruments.texture,...DNA.instruments.accent,...amod.add_sound];
+  const compBits=["slow flowing phrases","repetitive predictable structure","no sudden changes","warm lower register"];
+  for(const extra of [emod.composition_add,gmod.composition_add]) if(extra) compBits.push(extra);
+  const composition=`${bpm} BPM, `+compBits.join(", ");
+
+  let soundDesign=instruments.join(", ");
+  if(base.sound_design) soundDesign+=`, ${base.sound_design}`;
+  if(ambience) soundDesign+=`, ${ambience} (always below the music)`;
+
+  const detailTrim=(detail||"").trim();
+  const sceneText = detailTrim ? `${base.scene} ${detailTrim}` : base.scene;
+
+  const situationPrompt=`Scene: ${sceneText}\nDog Emotion: ${base.dog_emotion}\nListening Mode: ${role.mode}.\nMusical Goal: ${base.musical_goal}\nSound Design: ${soundDesign}.\nComposition: ${composition}, key ${DNA.keys.primary}, smooth harmonic movement, no strong climax.\nRole Direction: ${role.dir}.\nEnding: ${base.ending}`;
+
+  const enTitle=`K-Paw ${sit.label} · ${role.name_en}${detailTrim? " — "+detailTrim : ""} (3시간)`;
+  const animalKo=animal==="dog"?"강아지":"고양이";
+  const brandStyle="cozy hand-painted children's-book illustration, warm soft palette, gentle rim light, calm and safe mood, a peaceful sleeping puppy character (consistent K-Paw mascot), soft grain, no text";
+  const sceneVisual=sceneText.split(".")[0];
+  const ytTitle=krTitle(situation,sit,animalKo);
+
+  return {
+    inputs:{animal,situation,detail:detailTrim,emotion,age,role:roleKey},
+    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",role:role.name_en,role_code:role.code,listening_mode:role.mode,section:role.section_ko},
+    suno:{styles:DNA.suno.styles,exclude_styles:DNA.suno.exclude,weirdness:DNA.suno.weirdness,style_influence:DNA.suno.style_influence,instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
+    images:{leonardo:`${sceneVisual}. ${brandStyle} :: cinematic lighting, cozy, 16:9`,flux:`${sceneVisual}. ${brandStyle}, warm cinematic ambient lighting, highly detailed, 16:9`,gpt_image:`A cozy warm illustration for a pet relaxation music thumbnail. ${sceneVisual}. Consistent sleeping-puppy mascot, soft palette, safe and calm, no text, 16:9.`},
+    youtube:{title:ytTitle,description:description(ytTitle,sceneText,animalKo),hashtags:hashtags(situation,animalKo),thumbnail_text:thumbText(situation),seo_keywords:seoKeywords(situation,animalKo),playlist:sit.playlist,made_for_kids:false,ai_disclosure:true}
+  };
+}
+
+/* ================= UI ================= */
+const KO = {
+  animal:{dog:"강아지",cat:"고양이"},
+  emotion:{default:"기본",calm:"평온",mild_anxiety:"약한 불안",fear:"공포·무서움",sleepy:"졸림",curious:"호기심"},
+  age:{default:"기본",puppy:"퍼피",adult:"성견",senior:"노령"},
+  situation:{car_ride:"차량 이동",home_alone:"집에 혼자",with_owner:"집사와 함께",thunder:"천둥·폭풍",vet_visit:"동물병원",sleep:"수면"}
+};
+const $ = id => document.getElementById(id);
+function fill(sel, entries, selected){
+  sel.innerHTML="";
+  for(const [val,text] of entries){
+    const o=document.createElement("option"); o.value=val; o.textContent=text;
+    if(val===selected) o.selected=true; sel.appendChild(o);
+  }
+}
+function koPairs(obj, map){ return Object.keys(obj).map(k=>[k, map[k]||k]); }
+
+fill($("animal"), koPairs(MODS.animal, KO.animal), "dog");
+fill($("age"), koPairs(MODS.age, KO.age), "default");
+fill($("emotion"), koPairs(MODS.emotion, KO.emotion), "default");
+fill($("situation"), Object.keys(SITUATIONS).map(k=>[k, KO.situation[k]||SITUATIONS[k].label]), "with_owner");
+fill($("role"), Object.keys(ROLES).map(k=>[k, ROLES[k].label_ko]), "resting");
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function block(title, content, opts={}){
+  const ko = opts.ko ? " ko" : "";
+  const copyText = opts.copy ?? content;
+  const body = opts.html || `<pre class="content${ko}">${esc(content)}</pre>`;
+  return `<div class="block">
+    <div class="block-head"><span class="block-title">${title}</span>
+      <button class="copy" data-copy="${encodeURIComponent(copyText)}">복사</button></div>
+    ${body}</div>`;
+}
+
+function render(r){
+  const s=r.suno, y=r.youtube, im=r.images;
+  const note = r.resolved.animal_note ? `<div class="note">🐈 ${esc(r.resolved.animal_note)}</div>` : "";
+  const tags = y.hashtags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
+  const seo = y.seo_keywords.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
+  const settings = `<div class="settings"><span>Weirdness <b>${s.weirdness}%</b></span><span>Style Influence <b>${s.style_influence}%</b></span><span>Instrumental <b>${s.instrumental?"ON":"OFF"}</b></span></div>`;
+
+  $("out").innerHTML =
+    `<div class="resolved">
+       <span class="chip">🎬 ${esc(r.resolved.role)}</span>
+       <span class="chip"><span class="k">♩</span> ${r.resolved.bpm} BPM</span>
+       <span class="chip">${esc(r.resolved.key)}</span>
+       <span class="chip">3시간 · 2:30~3:00 클립</span>
+       <span class="chip pl">▶ ${esc(y.playlist)}</span>
+     </div>
+     <div class="rolehint">${esc(r.resolved.section)} · Listening Mode: ${esc(r.resolved.listening_mode)}</div>${note}
+     <div class="sec-label">Suno 프롬프트</div>
+     ${block("Styles", s.styles)}
+     ${block("Exclude Styles", s.exclude_styles)}
+     ${block("설정", "", {html:settings, copy:`Weirdness ${s.weirdness}% / Style Influence ${s.style_influence}% / Instrumental ${s.instrumental?"ON":"OFF"}`})}
+     ${block("Situation Prompt (설명 칸에 붙여넣기)", s.situation_prompt)}
+     ${block("곡 제목", s.song_title)}
+     <div class="sec-label">이미지 프롬프트</div>
+     ${block("GPT-Image", im.gpt_image)}
+     ${block("Leonardo", im.leonardo)}
+     ${block("Flux", im.flux)}
+     <div class="sec-label">YouTube</div>
+     ${block("제목", y.title, {ko:true})}
+     ${block("썸네일 문구", y.thumbnail_text, {ko:true})}
+     ${block("설명", y.description, {ko:true})}
+     ${block("해시태그", "", {html:`<div class="tags">${tags}</div>`, copy:y.hashtags.join(" ")})}
+     ${block("SEO 키워드", "", {html:`<div class="tags">${seo}</div>`, copy:y.seo_keywords.join(", ")})}
+     <div class="downloads">
+       <button class="ghost" id="dlKpaw">전체 결과 JSON 저장</button>
+       <button class="ghost" id="dlEngine">영상엔진용 config 저장</button>
+     </div>`;
+  $("out").classList.add("show");
+
+  $("out").querySelectorAll(".copy").forEach(btn=>{
+    btn.addEventListener("click", ()=>copy(decodeURIComponent(btn.dataset.copy), btn));
+  });
+  $("dlKpaw").onclick = ()=>download(`kpaw_${r.inputs.situation}_${r.resolved.role_code}.json`, JSON.stringify(r,null,2));
+  $("dlEngine").onclick = ()=>download(`${r.inputs.situation}_${r.resolved.role_code}.engine.json`, JSON.stringify({
+    clips:["./assets/music/track_01.mp3","./assets/music/track_02.mp3","./assets/music/track_03.mp3"],
+    visual:"./assets/bg/scene.png", mascot:"./assets/brand/mascot.png",
+    title:y.title, channel_text:"K-Paw", role:r.resolved.role,
+    hours:Math.round(r.resolved.target_minutes/60*100)/100, out:`./out/${r.inputs.situation}_${r.resolved.role_code}`
+  },null,2));
+
+  $("out").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth", block:"start"});
+}
+
+function copy(text, btn){
+  const done = ()=>{ const o=btn.textContent; btn.textContent="복사됨 ✓"; btn.classList.add("done");
+    setTimeout(()=>{btn.textContent=o; btn.classList.remove("done");},1400); };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));
+  } else fallbackCopy(text,done);
+}
+function fallbackCopy(text, done){
+  const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{document.execCommand("copy");}catch(e){}
+  document.body.removeChild(ta); done();
+}
+function download(name, text){
+  const b=new Blob([text],{type:"application/json"}); const u=URL.createObjectURL(b);
+  const a=document.createElement("a"); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
+}
+
+$("go").addEventListener("click", ()=>{
+  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,$("role").value);
+  render(r);
+});
+</script>
+</body>
+</html>
