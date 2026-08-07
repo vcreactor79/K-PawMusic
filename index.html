@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>K-Paw · 음악 프롬프트 컴파일러</title>
+<title>K-Paw Music · 프롬프트 컴파일러</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#1F1A20; --bg2:#181318; --surface:#2A222C; --surface2:#332839;
-    --line:#3A3040; --text:#F1E8DC; --muted:#A99CA0;
-    --amber:#E9A94F; --amber-hi:#F2BC6B; --amber-glow:rgba(233,169,79,.16);
-    --sage:#93A98E; --rose:#D69A96;
+    --bg:#FFFFFF; --surface:#FFFFFF; --surface2:#F2F5F8; --inset:#F6F8FA;
+    --line:#E4E8EC; --text:#233240; --muted:#7C8994;
+    --navy:#1F3B57; --navy-deep:#16293B; --navy-hi:#2A4E70;
+    --gold:#C2984C; --gold-hi:#D3AA5E; --gold-soft:rgba(194,152,76,.12);
+    --green:#5C9A6B;
     --display:'Quicksand',system-ui,sans-serif;
     --body:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
     --mono:ui-monospace,Menlo,Consolas,monospace;
@@ -22,54 +23,52 @@
   html,body{margin:0}
   body{
     background:
-      radial-gradient(120% 60% at 50% -10%, rgba(233,169,79,.10), transparent 60%),
+      radial-gradient(120% 55% at 50% -8%, rgba(194,152,76,.08), transparent 60%),
       var(--bg);
     color:var(--text); font-family:var(--body); line-height:1.6;
-    padding:max(20px,env(safe-area-inset-top)) 18px 64px;
+    padding:max(18px,env(safe-area-inset-top)) 18px 64px;
     -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:660px; margin:0 auto}
 
-  header{text-align:center; padding:14px 0 22px}
-  .mark{font-size:32px; line-height:1}
-  .brand{font-family:var(--display); font-weight:700; font-size:30px;
-    letter-spacing:.5px; margin:8px 0 2px}
-  .brand .paw{color:var(--amber)}
-  .tagline{color:var(--muted); font-size:14px; margin:0}
+  header{text-align:center; padding:8px 0 20px}
+  .logo{width:min(150px,44vw); height:auto; display:block; margin:0 auto}
+  .tagline{color:var(--muted); font-size:14px; margin:4px 0 0}
 
   .card{background:var(--surface); border:1px solid var(--line);
-    border-radius:var(--radius); padding:20px}
+    border-radius:var(--radius); padding:20px;
+    box-shadow:0 1px 2px rgba(22,41,59,.04), 0 10px 26px rgba(31,59,87,.05)}
 
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
   @media (max-width:460px){.grid{grid-template-columns:1fr}}
   .field{display:flex; flex-direction:column; gap:6px}
   .field.full{grid-column:1 / -1}
-  label{font-size:12px; font-weight:600; color:var(--muted);
+  label{font-size:12px; font-weight:700; color:var(--muted);
     letter-spacing:.4px; text-transform:uppercase}
   .hint{font-size:12px; color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0}
   select, input[type=text]{
     appearance:none; -webkit-appearance:none; width:100%;
-    background:var(--bg2); color:var(--text); font-family:var(--body); font-size:16px;
+    background:#FFFFFF; color:var(--text); font-family:var(--body); font-size:16px;
     border:1px solid var(--line); border-radius:11px; padding:12px 13px;
   }
   select{
     padding-right:34px;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'><path d='M1 1l5 5 5-5' stroke='%23A99CA0' stroke-width='1.6' stroke-linecap='round'/></svg>");
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'><path d='M1 1l5 5 5-5' stroke='%237C8994' stroke-width='1.6' stroke-linecap='round'/></svg>");
     background-repeat:no-repeat; background-position:right 14px center;
   }
-  input[type=text]::placeholder{color:#6f636b}
-  select:focus-visible, input:focus-visible{outline:2px solid var(--amber); outline-offset:1px}
+  input[type=text]::placeholder{color:#A7B2BC}
+  select:focus-visible, input:focus-visible{outline:2px solid var(--gold); outline-offset:1px}
 
   .compile{
     grid-column:1 / -1; margin-top:6px; position:relative;
-    background:linear-gradient(180deg,var(--amber-hi),var(--amber));
-    color:#3A2708; font-family:var(--display); font-weight:700; font-size:18px;
+    background:linear-gradient(180deg,var(--navy-hi),var(--navy));
+    color:#FFFFFF; font-family:var(--display); font-weight:700; font-size:18px;
     border:none; border-radius:13px; padding:15px; cursor:pointer;
-    box-shadow:0 0 0 0 var(--amber-glow); transition:box-shadow .3s,transform .06s;
+    box-shadow:0 6px 16px rgba(31,59,87,.18); transition:box-shadow .25s,transform .06s;
   }
-  .compile:hover{box-shadow:0 0 34px 2px var(--amber-glow)}
+  .compile:hover{box-shadow:0 8px 26px rgba(31,59,87,.28)}
   .compile:active{transform:translateY(1px)}
-  .compile:focus-visible{outline:2px solid var(--amber-hi); outline-offset:3px}
+  .compile:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
 
   #out{margin-top:22px; display:none}
   #out.show{display:block; animation:rise .4s ease both}
@@ -77,16 +76,17 @@
 
   .resolved{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px}
   .chip{background:var(--surface2); border:1px solid var(--line);
-    color:var(--text); font-size:13px; font-weight:600;
+    color:var(--navy); font-size:13px; font-weight:600;
     padding:6px 12px; border-radius:999px}
-  .chip .k{color:var(--amber)}
-  .chip.pl{color:var(--sage)}
+  .chip .k{color:var(--gold)}
+  .chip.pl{color:var(--gold)}
+  .chip.inst, .chip.style{background:var(--gold-soft); border-color:rgba(194,152,76,.4)}
 
-  .note{background:rgba(214,154,150,.10); border:1px solid rgba(214,154,150,.35);
-    color:#F0D8D5; font-size:13.5px; border-radius:12px; padding:12px 14px; margin-bottom:16px}
+  .note{background:var(--gold-soft); border:1px solid rgba(194,152,76,.4);
+    color:var(--navy-deep); font-size:13.5px; border-radius:12px; padding:12px 14px; margin-bottom:16px}
 
   .sec-label{font-family:var(--display); font-weight:700; font-size:13px;
-    letter-spacing:1.5px; text-transform:uppercase; color:var(--amber);
+    letter-spacing:1.5px; text-transform:uppercase; color:var(--gold);
     margin:22px 2px 10px}
   .sec-label:first-child{margin-top:4px}
 
@@ -95,33 +95,34 @@
   .block-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
   .block-title{font-size:12px; font-weight:700; letter-spacing:.4px;
     text-transform:uppercase; color:var(--muted)}
-  .copy{background:var(--surface2); color:var(--text); border:1px solid var(--line);
+  .copy{background:var(--surface2); color:var(--navy); border:1px solid var(--line);
     font-family:var(--body); font-size:12.5px; font-weight:600;
     padding:6px 12px; border-radius:9px; cursor:pointer; white-space:nowrap;
     transition:background .15s,color .15s}
-  .copy:hover{background:var(--line)}
-  .copy:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
-  .copy.done{background:var(--sage); color:#173218; border-color:var(--sage)}
+  .copy:hover{background:#E7ECF0}
+  .copy:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+  .copy.done{background:var(--green); color:#FFFFFF; border-color:var(--green)}
 
   .content{font-family:var(--mono); font-size:13px; color:var(--text);
-    white-space:pre-wrap; word-break:break-word; margin:0}
+    white-space:pre-wrap; word-break:break-word; margin:0;
+    background:var(--inset); border:1px solid var(--line);
+    border-radius:9px; padding:11px 12px}
   .content.ko{font-family:var(--body); font-size:14px}
   .settings{display:flex; gap:16px; flex-wrap:wrap; font-size:13.5px; color:var(--muted)}
-  .settings b{color:var(--text); font-weight:600}
+  .settings b{color:var(--navy); font-weight:700}
   .tags{display:flex; flex-wrap:wrap; gap:6px}
-  .tag{background:var(--bg2); border:1px solid var(--line); color:var(--text);
+  .tag{background:var(--inset); border:1px solid var(--line); color:var(--navy);
     font-size:12.5px; padding:4px 9px; border-radius:8px}
 
   .downloads{margin-top:18px; display:flex; gap:10px; flex-wrap:wrap}
-  .ghost{background:transparent; color:var(--amber); border:1px solid var(--amber);
+  .ghost{background:transparent; color:var(--navy); border:1px solid var(--navy);
     font-family:var(--body); font-weight:600; font-size:13.5px;
     padding:10px 16px; border-radius:11px; cursor:pointer}
-  .ghost:hover{background:var(--amber-glow)}
+  .ghost:hover{background:var(--gold-soft); border-color:var(--gold)}
 
-  .rolehint{color:var(--muted); font-size:12px; margin:2px 2px 12px}
   footer{color:var(--muted); font-size:12px; text-align:center;
     margin-top:34px; line-height:1.7}
-  footer b{color:var(--sage)}
+  footer b{color:var(--gold)}
 
   @media (prefers-reduced-motion:reduce){
     #out.show{animation:none}
@@ -132,8 +133,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="mark">🐾🌙</div>
-    <h1 class="brand"><span class="paw">K</span>-Paw</h1>
+    <img class="logo" src="data:image/png;base64,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" alt="K-Paw Music">
     <p class="tagline">상황을 고르면 음악 프롬프트가 완성됩니다</p>
   </header>
 
@@ -142,12 +142,14 @@
       <div class="field"><label for="animal">대상</label><select id="animal"></select></div>
       <div class="field"><label for="age">나이</label><select id="age"></select></div>
       <div class="field full"><label for="situation">상황</label><select id="situation"></select></div>
-      <div class="field full"><label for="role">역할 <span class="hint">· 3시간 구성 단계</span></label><select id="role"></select></div>
       <div class="field full">
         <label for="detail">세부 상황 <span class="hint">· 자유 입력, 비워도 됨</span></label>
         <input type="text" id="detail" placeholder="예: 비 오는 창가에서 낮잠 / 손님이 왔을 때">
       </div>
-      <div class="field full"><label for="emotion">감정 상태</label><select id="emotion"></select></div>
+      <div class="field"><label for="style">스타일 <span class="hint">· 장르</span></label><select id="style"></select></div>
+      <div class="field"><label for="arc">곡 구조 <span class="hint">· 흐름</span></label><select id="arc"></select></div>
+      <div class="field"><label for="emotion">감정 상태</label><select id="emotion"></select></div>
+      <div class="field"><label for="lead">리드 악기</label><select id="lead"></select></div>
       <button class="compile" id="go">컴파일 ✨</button>
     </div>
   </div>
@@ -156,9 +158,8 @@
 
   <footer>
     Suno에서 2:30~3:00 클립을 여러 개 만들어 3시간 영상으로 합치는 방식 기준입니다.<br>
-    정직 설계 내장 — 설명문은 “연구에 착안” 표현만 쓰고, 의학적 단정은 넣지 않으며
-    <b>의학 면책·AI 고지</b>가 항상 포함됩니다.<br>
-    K-Paw Music Engine · 웹 컴파일러 v1.2 · 역할(Arrival·Resting·Deep Rest) 반영
+    스타일·리드 악기를 바꿔가며 뽑으면 곡에 variation이 생깁니다.<br>
+    정직 설계 내장 — <b>의학 면책·AI 고지</b>가 항상 포함됩니다. · 웹 컴파일러 v1.3
   </footer>
 </div>
 
@@ -166,28 +167,54 @@
 /* ================= 컴파일러 코어 ================= */
 const DNA = {
   suno: {
-    styles: "K-Paw Signature Sound, calming ambient, low felt piano, warm cello, soft viola, gentle harp, warm analog pads, deep relaxation, healing, instrumental, peaceful, minimal, cinematic ambient, nature inspired, soft acoustic textures",
-    exclude: "vocals, drums, edm, rock, trap, dubstep, heavy bass, metal, cinematic climax, aggressive, fast tempo, bright bells, sharp synths, glitch, distorted sounds",
+    moodTails: "peaceful, minimal, deep relaxation, healing, instrumental, soft acoustic textures",
+    excludeBase: "vocals, edm, rock, trap, dubstep, heavy bass, metal, cinematic climax, aggressive, fast tempo, sharp synths, glitch, distorted sounds",
     weirdness: 30, style_influence: 90, instrumental: true
   },
   bpm_min: 58, bpm_max: 62,
-  keys: { primary: "F Major", secondary: "D Major" },
-  instruments: {
-    main: ["low felt piano"], harmony: ["warm cello", "soft viola"],
-    texture: ["warm analog pad"], accent: ["gentle harp (sparse, mid register)"]
+  keys: { primary: "F Major", secondary: "D Major" }
+};
+// 스타일(장르) 축 — 재즈 문서 반영. 각 스타일이 악기 베드·제외·리듬을 정의.
+const STYLES = {
+  ambient: {
+    label_ko:"K-Paw 앰비언트 (기본)",
+    tag:"K-Paw Signature Sound, calming ambient, warm analog pads",
+    instruments:"warm analog pads and subtle soft strings",
+    exclude_add:"drums, bright bells",
+    composition_add:""
+  },
+  smooth_jazz: {
+    label_ko:"스무스 재즈 (밤·차분)",
+    tag:"smooth jazz, slow tempo, mellow late-night mood",
+    instruments:"soft mellow piano, warm double bass, very soft brush drums (barely audible)",
+    exclude_add:"brass, trumpet, saxophone solo, loud snare, strong cymbals, dissonance, fast swing, complex syncopation, improvisation",
+    composition_add:"steady slow 4/4 groove, simple repetitive lyrical melody, no sudden pitch jumps"
+  },
+  bossa: {
+    label_ko:"보사노바 (낮잠·햇살)",
+    tag:"gentle bossa nova, relaxed sunny calm mood",
+    instruments:"soft nylon acoustic guitar, soft flute, warm double bass, very soft brush percussion",
+    exclude_add:"brass, loud snare, strong cymbals, dissonance, fast swing, complex syncopation, improvisation",
+    composition_add:"gentle relaxed bossa nova rhythm, simple repetitive melody, warm and calm"
   }
 };
-// 3시간 구성 역할 — Production Guide §3·§4 기준 (역할별 BPM 창 + Suno 방향 + 구간 가이드)
-const ROLES = {
-  arrival:   { code:"A", name_en:"Arrival",   label_ko:"Arrival · 도입",        mode:"Calm Awake",
-    bpm_base:60, bpm_min:58, bpm_max:62, section_ko:"첫 20~30분 · 승인 4곡",
-    dir:"Arrival role — warm and familiar opening, gentle low felt piano motif, low melodic density, predictable long phrases, no dramatic introduction, no final cadence, soft unresolved ending" },
-  resting:   { code:"R", name_en:"Resting",   label_ko:"Resting · 안정",        mode:"Calm Awake / Rest",
-    bpm_base:58, bpm_min:56, bpm_max:60, section_ko:"중간 80~100분 · 승인 10곡",
-    dir:"Resting role — stable resting section, limited melodic range, subtle evolving repetition, consistent instrumentation, restrained dynamics, no new instrument introduction, no emotional rise, no closing gesture" },
-  deep_rest: { code:"D", name_en:"Deep Rest", label_ko:"Deep Rest · 깊은 휴식",   mode:"Rest and Sleep",
-    bpm_base:55, bpm_min:52, bpm_max:58, section_ko:"마지막 50~70분 · 승인 6곡",
-    dir:"Deep Rest role — nearly free-flowing, very low melodic density, sustained warm viola and cello textures, sparse low felt piano, minimal attack, no audible pulse, no bright upper register, no cadence, seamless loop-friendly ending" }
+// 곡 구조(Arc) — 곡의 흐름. 상황별 기본값이 있고, 수동 선택으로 덮어쓸 수 있다(자동/수동 겸용).
+const ARCS = {
+  settling: { label_ko:"도입 (서서히 진정)", composition_add:"begins a touch more present, then gradually settles and softens, guiding from mild alertness down into calm" },
+  steady:   { label_ko:"안정 (기복 없이 잔잔)", composition_add:"stays even and unchanging from start to finish, no build, a steady gentle background bed" },
+  deep_rest:{ label_ko:"깊은 휴식 (잠으로 유도)", composition_add:"gradually slows and thins out over time, movement fading toward stillness and sleep" }
+};
+const DEFAULT_ARC = { car_ride:"settling", home_alone:"steady", with_owner:"steady", thunder:"settling", vet_visit:"settling", sleep:"deep_rest" };
+// 리드 악기 — variation의 핵심. 스타일 위에 얹혀 그 악기를 강조.
+const LEADS = {
+  default:{ label_ko:"기본 (믹스)",     tag:"soft balanced lead", lead:"a soft balanced lead" },
+  piano:  { label_ko:"피아노",          tag:"expressive soft felt piano lead", lead:"soft felt piano" },
+  guitar: { label_ko:"어쿠스틱 기타",    tag:"warm fingerstyle nylon acoustic guitar lead", lead:"soft nylon acoustic guitar" },
+  cello:  { label_ko:"첼로",            tag:"warm expressive solo cello lead", lead:"warm solo cello" },
+  violin: { label_ko:"바이올린",         tag:"gentle lyrical solo violin lead", lead:"soft solo violin" },
+  harp:   { label_ko:"하프",            tag:"flowing gentle harp lead", lead:"gentle harp" },
+  flute:  { label_ko:"플루트",          tag:"soft airy flute lead", lead:"soft flute" },
+  double_bass:{ label_ko:"콘트라베이스", tag:"warm mellow double bass lead", lead:"warm double bass" }
 };
 const SITUATIONS = {
   car_ride: { label:"Car Ride", playlist:"이동/차량", base:{
@@ -196,9 +223,9 @@ const SITUATIONS = {
     scene:"The owner has left and the home is quiet and still, afternoon light moving slowly across the floor.", dog_emotion:"Missing the owner, a little restless.", musical_goal:"Ease separation anxiety and provide a sense of companionship through the day.", sound_design:"very subtle room ambience", bpm:59, nature:["soft breeze"], ending:"The dog settles, feeling safe and accompanied until the owner returns." }},
   with_owner: { label:"With Owner", playlist:"집사와 함께/일상 힐링", base:{
     scene:"The dog rests peacefully beside its owner during a calm everyday moment at home, the owner reading or relaxing nearby.", dog_emotion:"Content, safe, and relaxed next to the owner.", musical_goal:"Deepen the shared calm between dog and owner and make ordinary time together feel warm and restful.", sound_design:"warm, intimate, gentle presence", bpm:60, nature:["soft room ambience"], ending:"Both dog and owner feel unhurried, close, and at ease." }},
-  thunder: { label:"Thunder & Storm", playlist:"천둥/불안 진정", base:{
+  thunder: { label:"Thunder & Storm", playlist:"천둥/불안 진정", high_fear:true, base:{
     scene:"A thunderstorm rolls outside. The dog is indoors in a safe, warm space with the owner or a familiar blanket.", dog_emotion:"Frightened and hyper-alert to the thunder.", musical_goal:"Provide a steady, grounding sound that masks startling thunder and restores a sense of safety.", sound_design:"a warm low grounding drone under the music, soft rain", bpm:58, nature:["soft steady rain"], ending:"The dog's alertness lowers and the body relaxes despite the storm." }},
-  vet_visit: { label:"Vet Visit", playlist:"병원/긴장 완화", base:{
+  vet_visit: { label:"Vet Visit", playlist:"병원/긴장 완화", high_fear:true, base:{
     scene:"The dog waits in a veterinary clinic among unfamiliar smells and sounds.", dog_emotion:"Tense and watchful.", musical_goal:"Lower baseline tension and give the owner a calming anchor to share.", sound_design:"very minimal, warm and enveloping", bpm:59, nature:["subtle ambience"], ending:"The dog's breathing slows and shoulders soften." }},
   sleep: { label:"Sleep", playlist:"수면/딥 릴랙스", base:{
     scene:"Late night. Lights are low and the household is winding down for sleep.", dog_emotion:"Drowsy and ready to rest.", musical_goal:"Guide the dog and owner into deep, uninterrupted sleep.", sound_design:"long sustained pads, minimal movement", bpm:58, nature:["very soft night ambience"], ending:"Both dog and owner drift into deep sleep." }}
@@ -222,7 +249,6 @@ const MODS = {
     sleepy:       { bpm_delta:-1, composition_add:"slower phrases, fading movement toward sleep" },
     curious:      { composition_add:"gentle forward motion, reassuring resolution" }
   },
-  // 길이 고정: Suno 클립을 여러 개 만들어 3시간 영상으로 조립
   duration: { long:{ target_minutes:180, label_ko:"3시간" } }
 };
 const clampBpm = v => Math.max(DNA.bpm_min, Math.min(DNA.bpm_max, v));
@@ -239,7 +265,7 @@ function krTitle(key, sit, animalKo){
   const hook=hooks[key]||`${animalKo}를 위한 ${sit.label} 힐링 음악`;
   return `${hook} 3시간 | K-Paw`.slice(0,80);
 }
-function seoKeywords(key, animalKo){
+function seoKeywords(key, animalKo, styleKey){
   const base=[`${animalKo} 음악`,`${animalKo} 수면 음악`,`${animalKo} 진정 음악`,"반려동물 음악","펫 힐링 음악","dog relaxing music","dog sleep music","calming music for dogs","pet relaxation"];
   const extra={
     thunder:["강아지 천둥 무서워","천둥 진정 음악","dog thunderstorm anxiety"],
@@ -249,12 +275,15 @@ function seoKeywords(key, animalKo){
     vet_visit:["강아지 병원 스트레스","vet visit calm"],
     sleep:["강아지 깊은 잠","deep sleep music for dogs"]
   };
-  return base.concat(extra[key]||[]);
+  const styleKw={ smooth_jazz:["강아지 재즈","스무스 재즈","relaxing jazz for dogs","smooth jazz for dogs"],
+                  bossa:["강아지 보사노바","보사노바 힐링","bossa nova for dogs"] };
+  return base.concat(extra[key]||[]).concat(styleKw[styleKey]||[]);
 }
-function hashtags(key, animalKo){
+function hashtags(key, animalKo, styleKey){
   const base=[`#${animalKo}음악`,"#반려동물음악","#펫힐링","#dogmusic","#petrelaxation"];
   const extra={thunder:["#천둥진정"],home_alone:["#분리불안"],with_owner:["#집사와함께","#일상힐링"],car_ride:["#차멀미"],sleep:["#수면음악"],vet_visit:["#병원긴장완화"]};
-  return base.concat(extra[key]||[]);
+  const styleTag={ smooth_jazz:["#재즈","#smoothjazz"], bossa:["#보사노바","#bossanova"] };
+  return base.concat(extra[key]||[]).concat(styleTag[styleKey]||[]);
 }
 function thumbText(key){
   const m={thunder:"천둥도 무섭지 않게",home_alone:"혼자여도 괜찮아",with_owner:"함께하는 시간",car_ride:"편안한 드라이브",vet_visit:"병원 가는 길, 편안하게",sleep:"깊은 잠으로"};
@@ -264,45 +293,61 @@ function description(title, sceneText, animalKo){
   return `${title}\n\n이 영상은 ${sceneText} 이런 상황의 ${animalKo}와 보호자를 위해 만든 K-Paw의 3시간 힐링 사운드입니다. 느린 템포와 예측 가능한 반복 구조, 부드러운 중저역 음색 등 반려동물 청각·행동 연구에서 관찰된 원칙에 착안해 설계했습니다.\n\n▶ 사용 팁\n· 볼륨은 대화 소리보다 작게, 배경으로 은은하게 틀어주세요.\n· 외출 전이나 취침 전 미리 틀어두면 좋습니다.\n· 보호자가 함께 들어도 편안하도록 만들었습니다.\n\n※ 이 음악은 의학적 치료가 아니며, 편안한 환경 조성을 돕기 위한 것입니다. 심한 불안 문제는 수의사와 상담하세요.\n※ 본 콘텐츠의 음원·영상은 AI 도구를 활용해 제작하고 사람이 편집·검수했습니다.`;
 }
 
-function compileKpaw(animal, situation, detail, emotion, age="default", roleKey="resting"){
+function compileKpaw(animal, situation, detail, emotion, age="default", leadKey="default", styleKey="ambient", arcKey="auto"){
   const sit=SITUATIONS[situation]; const base=sit.base;
   const amod=MODS.animal[animal]||MODS.animal.dog;
   const gmod=MODS.age[age]||MODS.age.default;
   const emod=MODS.emotion[emotion]||MODS.emotion.default;
+  const lead=LEADS[leadKey]||LEADS.default;
+  const style=STYLES[styleKey]||STYLES.ambient;
+  const arcResolved = (arcKey==="auto") ? (DEFAULT_ARC[situation]||"steady") : arcKey;
+  const arc = ARCS[arcResolved]||ARCS.steady;
   const dmod=MODS.duration.long;
-  const role=ROLES[roleKey]||ROLES.resting;
 
-  // 역할이 BPM 창을 결정하고, 상황별 상대 템포 성향(기준 60 대비)을 그 안에서 유지
-  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
-  const sitOffset=(base.bpm||60)-60;
-  const bpm=clamp(role.bpm_base+sitOffset+amod.bpm_delta+gmod.bpm_delta+(emod.bpm_delta||0), role.bpm_min, role.bpm_max);
+  const bpm=clampBpm(base.bpm+amod.bpm_delta+gmod.bpm_delta+(emod.bpm_delta||0));
   const ambience=(base.nature||[]).join(", ");
-  const instruments=[...DNA.instruments.main,...DNA.instruments.harmony,...DNA.instruments.texture,...DNA.instruments.accent,...amod.add_sound];
+
   const compBits=["slow flowing phrases","repetitive predictable structure","no sudden changes","warm lower register"];
-  for(const extra of [emod.composition_add,gmod.composition_add]) if(extra) compBits.push(extra);
+  for(const extra of [arc.composition_add,style.composition_add,emod.composition_add,gmod.composition_add]) if(extra) compBits.push(extra);
   const composition=`${bpm} BPM, `+compBits.join(", ");
 
-  let soundDesign=instruments.join(", ");
+  // 리드 악기를 주인공으로, 스타일의 악기 베드를 아래에
+  let soundDesign=`${lead.lead} as the clear lead voice, with ${style.instruments} kept gently underneath`;
   if(base.sound_design) soundDesign+=`, ${base.sound_design}`;
   if(ambience) soundDesign+=`, ${ambience} (always below the music)`;
+  if(amod.add_sound.length) soundDesign+=`, ${amod.add_sound.join(", ")}`;
+
+  // Styles: 스타일(장르) 태그 → 리드 → 스타일 악기 → 공통 무드
+  const styles=`${style.tag}, ${lead.tag}, ${style.instruments}, ${DNA.suno.moodTails}`;
+  const exclude=`${DNA.suno.excludeBase}, ${style.exclude_add}`;
 
   const detailTrim=(detail||"").trim();
   const sceneText = detailTrim ? `${base.scene} ${detailTrim}` : base.scene;
 
-  const situationPrompt=`Scene: ${sceneText}\nDog Emotion: ${base.dog_emotion}\nListening Mode: ${role.mode}.\nMusical Goal: ${base.musical_goal}\nSound Design: ${soundDesign}.\nComposition: ${composition}, key ${DNA.keys.primary}, smooth harmonic movement, no strong climax.\nRole Direction: ${role.dir}.\nEnding: ${base.ending}`;
+  const situationPrompt=`Scene: ${sceneText}\nDog Emotion: ${base.dog_emotion}\nMusical Goal: ${base.musical_goal}\nSound Design: ${soundDesign}.\nComposition: ${composition}, key ${DNA.keys.primary}, smooth harmonic movement, no strong climax.\nEnding: ${base.ending}`;
 
-  const enTitle=`K-Paw ${sit.label} · ${role.name_en}${detailTrim? " — "+detailTrim : ""} (3시간)`;
+  const enTitle=`K-Paw ${sit.label}${detailTrim? " — "+detailTrim : ""} (3시간)`;
   const animalKo=animal==="dog"?"강아지":"고양이";
-  const brandStyle="cozy hand-painted children's-book illustration, warm soft palette, gentle rim light, calm and safe mood, a peaceful sleeping puppy character (consistent K-Paw mascot), soft grain, no text";
+  const photoStyle="photorealistic candid photograph, a real dog, natural soft window light, shallow depth of field, cozy warm home interior, calm gentle mood, realistic fur texture, high detail, 4k";
   const sceneVisual=sceneText.split(".")[0];
   const ytTitle=krTitle(situation,sit,animalKo);
 
+  // 재즈가 덜 적합한 고불안 상황 안내
+  const jazz=(styleKey==="smooth_jazz"||styleKey==="bossa");
+  const styleWarning = (jazz && sit.high_fear)
+    ? "재즈·보사노바는 즉흥성·복잡성 때문에 극도로 불안한 상황(천둥·병원)에는 덜 적합할 수 있습니다. 이 상황에선 'K-Paw 앰비언트'가 더 안전합니다. 굳이 재즈를 쓴다면 지금처럼 브라스·불협화음이 배제된 아주 단순한 형태로만 유지하세요."
+    : "";
+
   return {
-    inputs:{animal,situation,detail:detailTrim,emotion,age,role:roleKey},
-    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",role:role.name_en,role_code:role.code,listening_mode:role.mode,section:role.section_ko},
-    suno:{styles:DNA.suno.styles,exclude_styles:DNA.suno.exclude,weirdness:DNA.suno.weirdness,style_influence:DNA.suno.style_influence,instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
-    images:{leonardo:`${sceneVisual}. ${brandStyle} :: cinematic lighting, cozy, 16:9`,flux:`${sceneVisual}. ${brandStyle}, warm cinematic ambient lighting, highly detailed, 16:9`,gpt_image:`A cozy warm illustration for a pet relaxation music thumbnail. ${sceneVisual}. Consistent sleeping-puppy mascot, soft palette, safe and calm, no text, 16:9.`},
-    youtube:{title:ytTitle,description:description(ytTitle,sceneText,animalKo),hashtags:hashtags(situation,animalKo),thumbnail_text:thumbText(situation),seo_keywords:seoKeywords(situation,animalKo),playlist:sit.playlist,made_for_kids:false,ai_disclosure:true}
+    inputs:{animal,situation,detail:detailTrim,emotion,age,lead:leadKey,style:styleKey,arc:arcResolved},
+    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",lead_ko:lead.label_ko,style_ko:style.label_ko,style_warning:styleWarning,arc_ko:arc.label_ko,arc_auto:(arcKey==="auto")},
+    suno:{styles,exclude_styles:exclude,weirdness:DNA.suno.weirdness,style_influence:DNA.suno.style_influence,instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
+    images:{
+      gpt_image:`A photorealistic, cozy photograph for a pet relaxation music thumbnail. ${sceneVisual}. ${photoStyle}, no text. Photorealistic — not an illustration, not a cartoon, not a 3D render.`,
+      leonardo:`${sceneVisual}. ${photoStyle}, cinematic natural lighting, 16:9. Realistic photo, no illustration, no cartoon, no anime, no 3D render.`,
+      flux:`${sceneVisual}. ${photoStyle}, warm natural cinematic lighting, highly detailed realistic photograph, 16:9.`
+    },
+    youtube:{title:ytTitle,description:description(ytTitle,sceneText,animalKo),hashtags:hashtags(situation,animalKo,styleKey),thumbnail_text:thumbText(situation),seo_keywords:seoKeywords(situation,animalKo,styleKey),playlist:sit.playlist,made_for_kids:false,ai_disclosure:true}
   };
 }
 
@@ -327,7 +372,11 @@ fill($("animal"), koPairs(MODS.animal, KO.animal), "dog");
 fill($("age"), koPairs(MODS.age, KO.age), "default");
 fill($("emotion"), koPairs(MODS.emotion, KO.emotion), "default");
 fill($("situation"), Object.keys(SITUATIONS).map(k=>[k, KO.situation[k]||SITUATIONS[k].label]), "with_owner");
-fill($("role"), Object.keys(ROLES).map(k=>[k, ROLES[k].label_ko]), "resting");
+fill($("style"), Object.keys(STYLES).map(k=>[k, STYLES[k].label_ko]), "ambient");
+fill($("arc"), [["auto","자동 (상황 맞춤)"]].concat(Object.keys(ARCS).map(k=>[k, ARCS[k].label_ko])), "auto");
+const leadEntries=[["default",LEADS.default.label_ko],["random","🎲 랜덤 (매번 다른 악기)"]]
+  .concat(Object.keys(LEADS).filter(k=>k!=="default").map(k=>[k,LEADS[k].label_ko]));
+fill($("lead"), leadEntries, "default");
 
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
@@ -343,27 +392,29 @@ function block(title, content, opts={}){
 
 function render(r){
   const s=r.suno, y=r.youtube, im=r.images;
-  const note = r.resolved.animal_note ? `<div class="note">🐈 ${esc(r.resolved.animal_note)}</div>` : "";
+  const catNote = r.resolved.animal_note ? `<div class="note">🐈 ${esc(r.resolved.animal_note)}</div>` : "";
+  const styleNote = r.resolved.style_warning ? `<div class="note">🎷 ${esc(r.resolved.style_warning)}</div>` : "";
   const tags = y.hashtags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const seo = y.seo_keywords.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const settings = `<div class="settings"><span>Weirdness <b>${s.weirdness}%</b></span><span>Style Influence <b>${s.style_influence}%</b></span><span>Instrumental <b>${s.instrumental?"ON":"OFF"}</b></span></div>`;
 
   $("out").innerHTML =
     `<div class="resolved">
-       <span class="chip">🎬 ${esc(r.resolved.role)}</span>
+       <span class="chip style">🎼 ${esc(r.resolved.style_ko)}</span>
+       <span class="chip inst">🎵 ${esc(r.resolved.lead_ko)}</span>
+       <span class="chip">🌙 ${esc(r.resolved.arc_ko)}${r.resolved.arc_auto?' · 자동':''}</span>
        <span class="chip"><span class="k">♩</span> ${r.resolved.bpm} BPM</span>
        <span class="chip">${esc(r.resolved.key)}</span>
        <span class="chip">3시간 · 2:30~3:00 클립</span>
        <span class="chip pl">▶ ${esc(y.playlist)}</span>
-     </div>
-     <div class="rolehint">${esc(r.resolved.section)} · Listening Mode: ${esc(r.resolved.listening_mode)}</div>${note}
+     </div>${styleNote}${catNote}
      <div class="sec-label">Suno 프롬프트</div>
      ${block("Styles", s.styles)}
      ${block("Exclude Styles", s.exclude_styles)}
      ${block("설정", "", {html:settings, copy:`Weirdness ${s.weirdness}% / Style Influence ${s.style_influence}% / Instrumental ${s.instrumental?"ON":"OFF"}`})}
      ${block("Situation Prompt (설명 칸에 붙여넣기)", s.situation_prompt)}
      ${block("곡 제목", s.song_title)}
-     <div class="sec-label">이미지 프롬프트</div>
+     <div class="sec-label">이미지 프롬프트 (실사)</div>
      ${block("GPT-Image", im.gpt_image)}
      ${block("Leonardo", im.leonardo)}
      ${block("Flux", im.flux)}
@@ -382,12 +433,12 @@ function render(r){
   $("out").querySelectorAll(".copy").forEach(btn=>{
     btn.addEventListener("click", ()=>copy(decodeURIComponent(btn.dataset.copy), btn));
   });
-  $("dlKpaw").onclick = ()=>download(`kpaw_${r.inputs.situation}_${r.resolved.role_code}.json`, JSON.stringify(r,null,2));
-  $("dlEngine").onclick = ()=>download(`${r.inputs.situation}_${r.resolved.role_code}.engine.json`, JSON.stringify({
+  $("dlKpaw").onclick = ()=>download(`kpaw_${r.inputs.situation}_${r.inputs.style}_${r.inputs.lead}.json`, JSON.stringify(r,null,2));
+  $("dlEngine").onclick = ()=>download(`${r.inputs.situation}.engine.json`, JSON.stringify({
     clips:["./assets/music/track_01.mp3","./assets/music/track_02.mp3","./assets/music/track_03.mp3"],
     visual:"./assets/bg/scene.png", mascot:"./assets/brand/mascot.png",
-    title:y.title, channel_text:"K-Paw", role:r.resolved.role,
-    hours:Math.round(r.resolved.target_minutes/60*100)/100, out:`./out/${r.inputs.situation}_${r.resolved.role_code}`
+    title:y.title, channel_text:"K-Paw",
+    hours:Math.round(r.resolved.target_minutes/60*100)/100, out:`./out/${r.inputs.situation}`
   },null,2));
 
   $("out").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth", block:"start"});
@@ -412,7 +463,9 @@ function download(name, text){
 }
 
 $("go").addEventListener("click", ()=>{
-  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,$("role").value);
+  let leadKey=$("lead").value;
+  if(leadKey==="random"){ const pool=Object.keys(LEADS).filter(k=>k!=="default"); leadKey=pool[Math.floor(Math.random()*pool.length)]; }
+  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,leadKey,$("style").value,$("arc").value);
   render(r);
 });
 </script>
