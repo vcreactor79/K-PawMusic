@@ -114,6 +114,13 @@
   .tag{background:var(--inset); border:1px solid var(--line); color:var(--navy);
     font-size:12.5px; padding:4px 9px; border-radius:8px}
 
+  .presets{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .preset{background:var(--inset); border:1px solid var(--line); color:var(--navy);
+    font-family:var(--body); font-size:12.5px; font-weight:600;
+    padding:5px 11px; border-radius:999px; cursor:pointer; transition:background .15s,border-color .15s}
+  .preset:hover{background:var(--gold-soft); border-color:var(--gold)}
+  .preset:focus-visible{outline:2px solid var(--gold); outline-offset:1px}
+
   .downloads{margin-top:18px; display:flex; gap:10px; flex-wrap:wrap}
   .ghost{background:transparent; color:var(--navy); border:1px solid var(--navy);
     font-family:var(--body); font-weight:600; font-size:13.5px;
@@ -143,13 +150,15 @@
       <div class="field"><label for="age">나이</label><select id="age"></select></div>
       <div class="field full"><label for="situation">상황</label><select id="situation"></select></div>
       <div class="field full">
-        <label for="detail">세부 상황 <span class="hint">· 자유 입력, 비워도 됨</span></label>
-        <input type="text" id="detail" placeholder="예: 비 오는 창가에서 낮잠 / 손님이 왔을 때">
+        <label for="detail">세부 상황 <span class="hint">· 한글 입력 시 자동 영어 변환 · 비워도 됨</span></label>
+        <input type="text" id="detail" placeholder="예: 비 오는 창가에서 낮잠 (아래 추천 참고)">
+        <div id="presets" class="presets"></div>
       </div>
       <div class="field"><label for="style">스타일 <span class="hint">· 장르</span></label><select id="style"></select></div>
       <div class="field"><label for="arc">곡 구조 <span class="hint">· 흐름</span></label><select id="arc"></select></div>
       <div class="field"><label for="emotion">감정 상태</label><select id="emotion"></select></div>
       <div class="field"><label for="lead">리드 악기</label><select id="lead"></select></div>
+      <div class="field"><label for="number">번호 (No.) <span class="hint">· 곡 제목 일련번호</span></label><input type="text" id="number" inputmode="numeric" value="1"></div>
       <button class="compile" id="go">컴파일 ✨</button>
     </div>
   </div>
@@ -253,6 +262,57 @@ const MODS = {
 };
 const clampBpm = v => Math.max(DNA.bpm_min, Math.min(DNA.bpm_max, v));
 
+// 세부 상황: 한글 입력을 영어 장면 키워드로 변환(프롬프트엔 한글이 들어가지 않게)
+const KO_EN = {
+  "비 오는":"rainy","눈 오는":"snowy","바람 부는":"windy","해질녘":"at sunset","한밤중":"late at night","늦은 밤":"late night","이른 아침":"early morning",
+  "비":"rain","눈":"snow","바람":"wind","폭풍":"storm","천둥":"thunder","번개":"lightning","햇살":"sunshine","햇빛":"sunlight","안개":"fog","구름":"clouds",
+  "아침":"morning","점심":"midday","저녁":"evening","오후":"afternoon","오전":"morning","새벽":"dawn","낮":"daytime","밤":"night","주말":"weekend",
+  "창가":"by the window","창문":"window","창":"window","소파":"sofa","침대":"bed","이불":"blanket","담요":"blanket","거실":"living room","안방":"bedroom","방":"room","부엌":"kitchen","주방":"kitchen","마당":"yard","정원":"garden","현관":"doorway","베란다":"balcony","차 안":"in the car","차":"car","공원":"park","병원":"clinic","이동장":"carrier","쿠션":"cushion","방석":"cushion",
+  "낮잠":"nap","잠":"sleep","수면":"sleep","산책":"walk","목욕":"bath","식사":"meal","밥":"meal","간식":"a treat","놀이":"play","휴식":"rest","기다리는":"waiting","기다림":"waiting",
+  "손님":"a guest","방문객":"a visitor","혼자":"alone","집사":"the owner","보호자":"the owner","주인":"the owner","가족":"the family","아기":"a baby","아이":"a child","택배":"a delivery","초인종":"the doorbell","불꽃놀이":"fireworks","이사":"moving house","청소기":"a vacuum","공사":"construction noise",
+  "불안한":"anxious","불안":"anxious","무서워하는":"scared","무서움":"scared","편안한":"relaxed","편안":"relaxed","졸린":"sleepy","졸림":"sleepy","외로운":"lonely","외로움":"lonely","심심한":"bored",
+  "함께":"together","곁에서":"beside the owner","옆에서":"beside the owner","집에서":"at home","집":"home"
+};
+const PARTICLES = ["에서","에게","으로","하는","할 때","동안","면서","에","로","의","를","을","이","가","은","는","과","와","도","만","때","중","서","고","한"];
+function toEnglishDetail(raw){
+  let t=(raw||"").trim();
+  if(!t) return {en:"", leftover:false};
+  if(!/[가-힣]/.test(t)) return {en:t, leftover:false};      // 이미 영어면 그대로
+  let s=t;
+  for(const k of Object.keys(KO_EN).sort((a,b)=>b.length-a.length)) s=s.split(k).join(" "+KO_EN[k]+" ");
+  for(const p of PARTICLES.sort((a,b)=>b.length-a.length)) s=s.split(p).join(" ");
+  const leftover=/[가-힣]/.test(s);
+  s=s.replace(/[가-힣]+/g," ").replace(/\s+/g," ").trim();     // 남은 한글은 제거(프롬프트 보호)
+  return {en:s, leftover};
+}
+// 상황별 추천 세부상황 (한글 표시 → 영어 사용)
+const DETAIL_PRESETS = {
+  car_ride:[["단거리","a short trip"],["장거리","a long drive"],["빗길","a rainy drive"],["야간","a night drive"],["첫 차량","a first car ride"]],
+  home_alone:[["근무일","a long working day"],["비 오는 날","a rainy day alone"],["짧은 외출","a short time alone"],["밤에 혼자","alone at night"]],
+  with_owner:[["소파에서 함께","resting together on the sofa"],["책 읽는 곁에서","beside the owner reading"],["커피 마시는 아침","a calm coffee morning together"],["비 오는 오후","a cozy rainy afternoon together"]],
+  thunder:[["천둥·번개","a thunderstorm with lightning"],["불꽃놀이","fireworks outside"],["강풍·비바람","a heavy windy storm"]],
+  vet_visit:[["대기실","the waiting room"],["진료 후 회복","recovering after a check-up"],["이동장 안","inside the carrier"]],
+  sleep:[["깊은 밤","deep in the night"],["낮잠","an afternoon nap"],["비 오는 밤","a rainy night"]]
+};
+
+// 곡 제목 앞부분(영문) — 상황별. 뒤는 'for Dogs/Cats @ K-Paw Signature No.NNN'로 고정.
+const SIT_PREFIX = {
+  car_ride:"Car Ride Calming Music", home_alone:"Separation Anxiety Relief Music",
+  with_owner:"Relaxing Music Together", thunder:"Thunderstorm Calming Music",
+  vet_visit:"Vet Visit Calming Music", sleep:"Deep Sleep Music"
+};
+// 이미지 프롬프트 다양화 풀 — 매 컴파일마다 무작위 조합으로 썸네일 variation 확보
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const IMG = {
+  dogBreeds:["golden retriever","corgi","shiba inu","beagle","toy poodle","labrador retriever","pomeranian","dachshund","border collie","cavalier king charles spaniel","white maltese","small mixed-breed dog","samoyed","jack russell terrier"],
+  catBreeds:["tabby cat","orange cat","british shorthair","calico cat","tuxedo cat","ragdoll cat","russian blue cat"],
+  shots:["intimate close-up portrait","cozy wide interior shot","gentle low-angle candid","soft eye-level shot","tender top-down view","over-the-shoulder framing","dreamy soft-focus close-up"],
+  lenses:["shot on 50mm f/1.8 with creamy bokeh","85mm portrait lens, shallow depth of field","35mm documentary style","fine macro detail on the fur","soft telephoto compression","wide 24mm environmental shot"],
+  light:["warm golden-hour light","soft diffused morning light","cozy lamplight at night","gentle overcast daylight","blue-hour dusk glow","backlit by a soft window","candle-warm ambient glow"],
+  palette:["warm amber tones","soft pastel palette","muted earthy neutrals","cozy warm beige tones","gently desaturated colors","tranquil cool-blue evening tones"],
+  pose:["curled up asleep","resting its head on its paws","gently dozing","stretched out relaxed","peacefully sleeping","half-asleep, blinking slowly","nestled into a soft blanket"]
+};
+
 function krTitle(key, sit, animalKo){
   const hooks={
     thunder:`천둥 무서워하는 ${animalKo}를 위한 진정 음악`,
@@ -293,7 +353,7 @@ function description(title, sceneText, animalKo){
   return `${title}\n\n이 영상은 ${sceneText} 이런 상황의 ${animalKo}와 보호자를 위해 만든 K-Paw의 3시간 힐링 사운드입니다. 느린 템포와 예측 가능한 반복 구조, 부드러운 중저역 음색 등 반려동물 청각·행동 연구에서 관찰된 원칙에 착안해 설계했습니다.\n\n▶ 사용 팁\n· 볼륨은 대화 소리보다 작게, 배경으로 은은하게 틀어주세요.\n· 외출 전이나 취침 전 미리 틀어두면 좋습니다.\n· 보호자가 함께 들어도 편안하도록 만들었습니다.\n\n※ 이 음악은 의학적 치료가 아니며, 편안한 환경 조성을 돕기 위한 것입니다. 심한 불안 문제는 수의사와 상담하세요.\n※ 본 콘텐츠의 음원·영상은 AI 도구를 활용해 제작하고 사람이 편집·검수했습니다.`;
 }
 
-function compileKpaw(animal, situation, detail, emotion, age="default", leadKey="default", styleKey="ambient", arcKey="auto"){
+function compileKpaw(animal, situation, detail, emotion, age="default", leadKey="default", styleKey="ambient", arcKey="auto", number=1){
   const sit=SITUATIONS[situation]; const base=sit.base;
   const amod=MODS.animal[animal]||MODS.animal.dog;
   const gmod=MODS.age[age]||MODS.age.default;
@@ -321,15 +381,22 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
   const styles=`${style.tag}, ${lead.tag}, ${style.instruments}, ${DNA.suno.moodTails}`;
   const exclude=`${DNA.suno.excludeBase}, ${style.exclude_add}`;
 
-  const detailTrim=(detail||"").trim();
-  const sceneText = detailTrim ? `${base.scene} ${detailTrim}` : base.scene;
+  const detailRaw=(detail||"").trim();
+  const tr=toEnglishDetail(detailRaw);
+  const detailEn=tr.en;
+  const sceneText = detailEn ? `${base.scene} ${detailEn}` : base.scene;
 
   const situationPrompt=`Scene: ${sceneText}\nDog Emotion: ${base.dog_emotion}\nMusical Goal: ${base.musical_goal}\nSound Design: ${soundDesign}.\nComposition: ${composition}, key ${DNA.keys.primary}, smooth harmonic movement, no strong climax.\nEnding: ${base.ending}`;
 
-  const enTitle=`K-Paw ${sit.label}${detailTrim? " — "+detailTrim : ""} (3시간)`;
+  const genrePre = styleKey==="smooth_jazz" ? "Smooth Jazz " : styleKey==="bossa" ? "Bossa Nova " : "";
+  const sitPrefix = SIT_PREFIX[situation] || `${sit.label} Music`;
+  const animalWord = animal==="dog" ? "Dogs" : "Cats";
+  const trackNo = String(Math.max(1, parseInt(number,10)||1)).padStart(3,"0");
+  const enTitle=`${genrePre}${sitPrefix} for ${animalWord} @ K-Paw Signature No.${trackNo}`;
   const animalKo=animal==="dog"?"강아지":"고양이";
-  const photoStyle="photorealistic candid photograph, a real dog, natural soft window light, shallow depth of field, cozy warm home interior, calm gentle mood, realistic fur texture, high detail, 4k";
   const sceneVisual=sceneText.split(".")[0];
+  const imgBreeds = animal==="cat" ? IMG.catBreeds : IMG.dogBreeds;
+  const buildImg = () => `${pick(IMG.shots)} of a real ${pick(imgBreeds)} ${pick(IMG.pose)}, in a scene of ${sceneVisual.toLowerCase()}. ${pick(IMG.light)}, ${pick(IMG.palette)}, ${pick(IMG.lenses)}. Photorealistic candid photograph, realistic fur texture, cozy calm mood, high detail, 4k, 16:9, no text. Not an illustration, not a cartoon, not anime, not a 3D render.`;
   const ytTitle=krTitle(situation,sit,animalKo);
 
   // 재즈가 덜 적합한 고불안 상황 안내
@@ -339,13 +406,13 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
     : "";
 
   return {
-    inputs:{animal,situation,detail:detailTrim,emotion,age,lead:leadKey,style:styleKey,arc:arcResolved},
-    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",lead_ko:lead.label_ko,style_ko:style.label_ko,style_warning:styleWarning,arc_ko:arc.label_ko,arc_auto:(arcKey==="auto")},
+    inputs:{animal,situation,detail:detailRaw,detail_en:detailEn,number:trackNo,emotion,age,lead:leadKey,style:styleKey,arc:arcResolved},
+    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",lead_ko:lead.label_ko,style_ko:style.label_ko,style_warning:styleWarning,arc_ko:arc.label_ko,arc_auto:(arcKey==="auto"),detail_en:detailEn,detail_warn:tr.leftover},
     suno:{styles,exclude_styles:exclude,weirdness:DNA.suno.weirdness,style_influence:DNA.suno.style_influence,instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
     images:{
-      gpt_image:`A photorealistic, cozy photograph for a pet relaxation music thumbnail. ${sceneVisual}. ${photoStyle}, no text. Photorealistic — not an illustration, not a cartoon, not a 3D render.`,
-      leonardo:`${sceneVisual}. ${photoStyle}, cinematic natural lighting, 16:9. Realistic photo, no illustration, no cartoon, no anime, no 3D render.`,
-      flux:`${sceneVisual}. ${photoStyle}, warm natural cinematic lighting, highly detailed realistic photograph, 16:9.`
+      gpt_image:buildImg(),
+      leonardo:buildImg(),
+      flux:buildImg()
     },
     youtube:{title:ytTitle,description:description(ytTitle,sceneText,animalKo),hashtags:hashtags(situation,animalKo,styleKey),thumbnail_text:thumbText(situation),seo_keywords:seoKeywords(situation,animalKo,styleKey),playlist:sit.playlist,made_for_kids:false,ai_disclosure:true}
   };
@@ -378,6 +445,17 @@ const leadEntries=[["default",LEADS.default.label_ko],["random","🎲 랜덤 (�
   .concat(Object.keys(LEADS).filter(k=>k!=="default").map(k=>[k,LEADS[k].label_ko]));
 fill($("lead"), leadEntries, "default");
 
+function renderPresets(){
+  const list = DETAIL_PRESETS[$("situation").value] || [];
+  $("presets").innerHTML = list.map(([ko,en])=>
+    `<button type="button" class="preset" data-en="${encodeURIComponent(en)}">${esc(ko)}</button>`).join("");
+  $("presets").querySelectorAll(".preset").forEach(b=>{
+    b.addEventListener("click", ()=>{ $("detail").value = decodeURIComponent(b.dataset.en); });
+  });
+}
+$("situation").addEventListener("change", renderPresets);
+renderPresets();
+
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 function block(title, content, opts={}){
@@ -394,6 +472,8 @@ function render(r){
   const s=r.suno, y=r.youtube, im=r.images;
   const catNote = r.resolved.animal_note ? `<div class="note">🐈 ${esc(r.resolved.animal_note)}</div>` : "";
   const styleNote = r.resolved.style_warning ? `<div class="note">🎷 ${esc(r.resolved.style_warning)}</div>` : "";
+  const detailNote = r.resolved.detail_warn ? `<div class="note">✏️ 일부 한글이 자동 변환되지 않아 프롬프트에서 제거했습니다. 더 정확히 하려면 위의 추천을 선택하거나 영어로 입력하세요.</div>` : "";
+  const detailChip = r.resolved.detail_en ? `<span class="chip inst">✏️ ${esc(r.resolved.detail_en)}</span>` : "";
   const tags = y.hashtags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const seo = y.seo_keywords.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const settings = `<div class="settings"><span>Weirdness <b>${s.weirdness}%</b></span><span>Style Influence <b>${s.style_influence}%</b></span><span>Instrumental <b>${s.instrumental?"ON":"OFF"}</b></span></div>`;
@@ -403,18 +483,19 @@ function render(r){
        <span class="chip style">🎼 ${esc(r.resolved.style_ko)}</span>
        <span class="chip inst">🎵 ${esc(r.resolved.lead_ko)}</span>
        <span class="chip">🌙 ${esc(r.resolved.arc_ko)}${r.resolved.arc_auto?' · 자동':''}</span>
+       ${detailChip}
        <span class="chip"><span class="k">♩</span> ${r.resolved.bpm} BPM</span>
        <span class="chip">${esc(r.resolved.key)}</span>
        <span class="chip">3시간 · 2:30~3:00 클립</span>
        <span class="chip pl">▶ ${esc(y.playlist)}</span>
-     </div>${styleNote}${catNote}
+     </div>${styleNote}${detailNote}${catNote}
      <div class="sec-label">Suno 프롬프트</div>
+     ${block("Situation Prompt (설명 칸에 붙여넣기)", s.situation_prompt)}
      ${block("Styles", s.styles)}
      ${block("Exclude Styles", s.exclude_styles)}
      ${block("설정", "", {html:settings, copy:`Weirdness ${s.weirdness}% / Style Influence ${s.style_influence}% / Instrumental ${s.instrumental?"ON":"OFF"}`})}
-     ${block("Situation Prompt (설명 칸에 붙여넣기)", s.situation_prompt)}
      ${block("곡 제목", s.song_title)}
-     <div class="sec-label">이미지 프롬프트 (실사)</div>
+     <div class="sec-label">이미지 프롬프트 (실사 · 매번 다르게)</div>
      ${block("GPT-Image", im.gpt_image)}
      ${block("Leonardo", im.leonardo)}
      ${block("Flux", im.flux)}
@@ -465,7 +546,7 @@ function download(name, text){
 $("go").addEventListener("click", ()=>{
   let leadKey=$("lead").value;
   if(leadKey==="random"){ const pool=Object.keys(LEADS).filter(k=>k!=="default"); leadKey=pool[Math.floor(Math.random()*pool.length)]; }
-  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,leadKey,$("style").value,$("arc").value);
+  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,leadKey,$("style").value,$("arc").value,$("number").value);
   render(r);
 });
 </script>
