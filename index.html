@@ -312,13 +312,13 @@ const SIT_PREFIX = {
 // 이미지 프롬프트 다양화 풀 — 매 컴파일마다 무작위 조합으로 썸네일 variation 확보
 const pick = a => a[Math.floor(Math.random()*a.length)];
 const IMG = {
-  dogBreeds:["golden retriever","corgi","shiba inu","beagle","toy poodle","labrador retriever","pomeranian","dachshund","border collie","cavalier king charles spaniel","white maltese","small mixed-breed dog","samoyed","jack russell terrier"],
-  catBreeds:["tabby cat","orange cat","british shorthair","calico cat","tuxedo cat","ragdoll cat","russian blue cat"],
-  shots:["intimate close-up portrait","cozy wide interior shot","gentle low-angle candid","soft eye-level shot","tender top-down view","over-the-shoulder framing","dreamy soft-focus close-up"],
-  lenses:["shot on 50mm f/1.8 with creamy bokeh","85mm portrait lens, shallow depth of field","35mm documentary style","fine macro detail on the fur","soft telephoto compression","wide 24mm environmental shot"],
+  dogBreeds:["corgi puppy","pomeranian puppy","toy poodle puppy","shiba inu puppy","dachshund puppy","maltese puppy","bichon frise puppy","cavalier king charles spaniel puppy","chihuahua puppy","shih tzu puppy","french bulldog puppy","miniature schnauzer puppy","papillon puppy","yorkshire terrier puppy","jack russell terrier puppy","pug puppy","beagle puppy","samoyed puppy","small fluffy mixed-breed puppy","tiny mixed-breed rescue puppy","scruffy little mixed-breed dog","pomeranian-mix puppy"],
+  catBreeds:["tabby kitten","orange kitten","british shorthair kitten","calico kitten","tuxedo kitten","ragdoll kitten","tiny fluffy mixed kitten"],
+  shots:["intimate close-up portrait","adorable tight close-up on the face","cozy wide interior shot","gentle low-angle candid","soft eye-level shot","tender top-down view","dreamy soft-focus close-up"],
+  lenses:["shot on 50mm f/1.8 with creamy bokeh","85mm portrait lens, shallow depth of field","35mm documentary style","fine macro detail on the fluffy fur","soft telephoto compression"],
   light:["warm golden-hour light","soft diffused morning light","cozy lamplight at night","gentle overcast daylight","blue-hour dusk glow","backlit by a soft window","candle-warm ambient glow"],
   palette:["warm amber tones","soft pastel palette","muted earthy neutrals","cozy warm beige tones","gently desaturated colors","tranquil cool-blue evening tones"],
-  pose:["curled up asleep","resting its head on its paws","gently dozing","stretched out relaxed","peacefully sleeping","half-asleep, blinking slowly","nestled into a soft blanket"]
+  pose:["curled into a tiny ball asleep","sleeping belly-up with little paws in the air","nose tucked under a fluffy tail","chin resting on a plush pillow, eyes half-closed","snuggled into a soft blanket like a burrito","tiny paws tucked under its chin","a sleepy mid-yawn with floppy ears","dozing with big round half-open eyes","peacefully sleeping in a cozy round pet bed","curled against a soft cushion, so cozy"]
 };
 
 function krTitle(key, sit, animalKo){
@@ -404,7 +404,7 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
   const animalKo=animal==="dog"?"강아지":"고양이";
   const sceneVisual=sceneText.split(".")[0];
   const imgBreeds = animal==="cat" ? IMG.catBreeds : IMG.dogBreeds;
-  const buildImg = () => `${pick(IMG.shots)} of a real ${pick(imgBreeds)} ${pick(IMG.pose)}, in a scene of ${sceneVisual.toLowerCase()}. ${pick(IMG.light)}, ${pick(IMG.palette)}, ${pick(IMG.lenses)}. Photorealistic candid photograph, realistic fur texture, cozy calm mood, high detail, 4k, 16:9, no text. Not an illustration, not a cartoon, not anime, not a 3D render.`;
+  const buildImg = () => `${pick(IMG.shots)} of an adorable, heart-meltingly cute real ${pick(imgBreeds)} ${pick(IMG.pose)}, in a scene of ${sceneVisual.toLowerCase()}. ${pick(IMG.light)}, ${pick(IMG.palette)}, ${pick(IMG.lenses)}. Photorealistic candid photograph, soft fluffy realistic fur, wholesome cozy heart-warming mood, high detail, 4k, 16:9, no text. Not a golden retriever. Not an illustration, not a cartoon, not anime, not a 3D render.`;
   const ytTitle=krTitle(situation,sit,animalKo);
 
   // 재즈가 덜 적합한 고불안 상황 안내
