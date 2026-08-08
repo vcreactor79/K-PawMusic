@@ -114,6 +114,10 @@
   .tag{background:var(--inset); border:1px solid var(--line); color:var(--navy);
     font-size:12.5px; padding:4px 9px; border-radius:8px}
 
+  .toggle{gap:4px}
+  .switch{display:flex; align-items:center; gap:9px; cursor:pointer;
+    font-size:14px; font-weight:600; color:var(--navy); text-transform:none; letter-spacing:0}
+  .switch input{width:20px; height:20px; accent-color:var(--gold); cursor:pointer}
   .presets{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
   .preset{background:var(--inset); border:1px solid var(--line); color:var(--navy);
     font-family:var(--body); font-size:12.5px; font-weight:600;
@@ -159,6 +163,7 @@
       <div class="field"><label for="emotion">감정 상태</label><select id="emotion"></select></div>
       <div class="field"><label for="lead">리드 악기</label><select id="lead"></select></div>
       <div class="field"><label for="number">번호 (No.) <span class="hint">· 곡 제목 일련번호</span></label><input type="text" id="number" inputmode="numeric" value="1"></div>
+      <div class="field full toggle"><label class="switch"><input type="checkbox" id="beatless" checked><span>비트리스 (드럼·비트 완전 제거)</span></label><span class="hint">수면·앰비언트 권장 · 재즈/보사노바의 브러시 드럼을 원하면 끄세요</span></div>
       <button class="compile" id="go">컴파일 ✨</button>
     </div>
   </div>
@@ -178,7 +183,10 @@ const DNA = {
   suno: {
     moodTails: "peaceful, minimal, deep relaxation, healing, instrumental, soft acoustic textures",
     excludeBase: "vocals, edm, rock, trap, dubstep, heavy bass, metal, cinematic climax, aggressive, fast tempo, sharp synths, glitch, distorted sounds",
-    weirdness: 30, style_influence: 90, instrumental: true
+    weirdness: 30, style_influence: 90, instrumental: true,
+    beatlessTags: "beatless, drone, atmospheric ambient soundscape, rubato free tempo, no beat, floating",
+    beatlessExclude: "drums, percussion, kick drum, hi-hats, cymbals, snare, beat, rhythmic percussion",
+    beatlessWeirdness: 15, beatlessStyleInfluence: 85
   },
   bpm_min: 58, bpm_max: 62,
   keys: { primary: "F Major", secondary: "D Major" }
@@ -353,7 +361,7 @@ function description(title, sceneText, animalKo){
   return `${title}\n\n이 영상은 ${sceneText} 이런 상황의 ${animalKo}와 보호자를 위해 만든 K-Paw의 3시간 힐링 사운드입니다. 느린 템포와 예측 가능한 반복 구조, 부드러운 중저역 음색 등 반려동물 청각·행동 연구에서 관찰된 원칙에 착안해 설계했습니다.\n\n▶ 사용 팁\n· 볼륨은 대화 소리보다 작게, 배경으로 은은하게 틀어주세요.\n· 외출 전이나 취침 전 미리 틀어두면 좋습니다.\n· 보호자가 함께 들어도 편안하도록 만들었습니다.\n\n※ 이 음악은 의학적 치료가 아니며, 편안한 환경 조성을 돕기 위한 것입니다. 심한 불안 문제는 수의사와 상담하세요.\n※ 본 콘텐츠의 음원·영상은 AI 도구를 활용해 제작하고 사람이 편집·검수했습니다.`;
 }
 
-function compileKpaw(animal, situation, detail, emotion, age="default", leadKey="default", styleKey="ambient", arcKey="auto", number=1){
+function compileKpaw(animal, situation, detail, emotion, age="default", leadKey="default", styleKey="ambient", arcKey="auto", number=1, beatless=false){
   const sit=SITUATIONS[situation]; const base=sit.base;
   const amod=MODS.animal[animal]||MODS.animal.dog;
   const gmod=MODS.age[age]||MODS.age.default;
@@ -369,7 +377,7 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
 
   const compBits=["slow flowing phrases","repetitive predictable structure","no sudden changes","warm lower register"];
   for(const extra of [arc.composition_add,style.composition_add,emod.composition_add,gmod.composition_add]) if(extra) compBits.push(extra);
-  const composition=`${bpm} BPM, `+compBits.join(", ");
+  const composition=(beatless ? "very slow, free rubato tempo, no fixed beat, " : `${bpm} BPM, `)+compBits.join(", ");
 
   // 리드 악기를 주인공으로, 스타일의 악기 베드를 아래에
   let soundDesign=`${lead.lead} as the clear lead voice, with ${style.instruments} kept gently underneath`;
@@ -378,8 +386,8 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
   if(amod.add_sound.length) soundDesign+=`, ${amod.add_sound.join(", ")}`;
 
   // Styles: 스타일(장르) 태그 → 리드 → 스타일 악기 → 공통 무드
-  const styles=`${style.tag}, ${lead.tag}, ${style.instruments}, ${DNA.suno.moodTails}`;
-  const exclude=`${DNA.suno.excludeBase}, ${style.exclude_add}`;
+  const styles=`${style.tag}, ${beatless?DNA.suno.beatlessTags+", ":""}${lead.tag}, ${style.instruments}, ${DNA.suno.moodTails}`;
+  const exclude=`${DNA.suno.excludeBase}, ${style.exclude_add}${beatless?", "+DNA.suno.beatlessExclude:""}`;
 
   const detailRaw=(detail||"").trim();
   const tr=toEnglishDetail(detailRaw);
@@ -407,8 +415,8 @@ function compileKpaw(animal, situation, detail, emotion, age="default", leadKey=
 
   return {
     inputs:{animal,situation,detail:detailRaw,detail_en:detailEn,number:trackNo,emotion,age,lead:leadKey,style:styleKey,arc:arcResolved},
-    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",lead_ko:lead.label_ko,style_ko:style.label_ko,style_warning:styleWarning,arc_ko:arc.label_ko,arc_auto:(arcKey==="auto"),detail_en:detailEn,detail_warn:tr.leftover},
-    suno:{styles,exclude_styles:exclude,weirdness:DNA.suno.weirdness,style_influence:DNA.suno.style_influence,instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
+    resolved:{bpm,key:DNA.keys.primary,target_minutes:dmod.target_minutes,animal_note:amod.note||"",lead_ko:lead.label_ko,style_ko:style.label_ko,style_warning:styleWarning,arc_ko:arc.label_ko,arc_auto:(arcKey==="auto"),detail_en:detailEn,detail_warn:tr.leftover,beatless:beatless},
+    suno:{styles,exclude_styles:exclude,weirdness:(beatless?DNA.suno.beatlessWeirdness:DNA.suno.weirdness),style_influence:(beatless?DNA.suno.beatlessStyleInfluence:DNA.suno.style_influence),instrumental:DNA.suno.instrumental,situation_prompt:situationPrompt,song_title:enTitle},
     images:{
       gpt_image:buildImg(),
       leonardo:buildImg(),
@@ -473,6 +481,7 @@ function render(r){
   const catNote = r.resolved.animal_note ? `<div class="note">🐈 ${esc(r.resolved.animal_note)}</div>` : "";
   const styleNote = r.resolved.style_warning ? `<div class="note">🎷 ${esc(r.resolved.style_warning)}</div>` : "";
   const detailNote = r.resolved.detail_warn ? `<div class="note">✏️ 일부 한글이 자동 변환되지 않아 프롬프트에서 제거했습니다. 더 정확히 하려면 위의 추천을 선택하거나 영어로 입력하세요.</div>` : "";
+  const beatlessNote = r.resolved.beatless ? `<div class="note">🚫🥁 비트리스 모드: 드럼·비트 태그를 제외하고 BPM 숫자를 뺐습니다. Suno에서 <b>Weirdness ${s.weirdness}%, Style Influence ${s.style_influence}%</b>로 맞추면 드럼이 잘 안 섞입니다. 그래도 새면 스템에서 드럼 트랙을 빼세요.</div>` : "";
   const detailChip = r.resolved.detail_en ? `<span class="chip inst">✏️ ${esc(r.resolved.detail_en)}</span>` : "";
   const tags = y.hashtags.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
   const seo = y.seo_keywords.map(t=>`<span class="tag">${esc(t)}</span>`).join("");
@@ -484,11 +493,11 @@ function render(r){
        <span class="chip inst">🎵 ${esc(r.resolved.lead_ko)}</span>
        <span class="chip">🌙 ${esc(r.resolved.arc_ko)}${r.resolved.arc_auto?' · 자동':''}</span>
        ${detailChip}
-       <span class="chip"><span class="k">♩</span> ${r.resolved.bpm} BPM</span>
+       <span class="chip"><span class="k">♩</span> ${r.resolved.beatless?'무박 · rubato':r.resolved.bpm+' BPM'}</span>
        <span class="chip">${esc(r.resolved.key)}</span>
        <span class="chip">3시간 · 2:30~3:00 클립</span>
        <span class="chip pl">▶ ${esc(y.playlist)}</span>
-     </div>${styleNote}${detailNote}${catNote}
+     </div>${styleNote}${beatlessNote}${detailNote}${catNote}
      <div class="sec-label">Suno 프롬프트</div>
      ${block("Situation Prompt (설명 칸에 붙여넣기)", s.situation_prompt)}
      ${block("Styles", s.styles)}
@@ -546,7 +555,7 @@ function download(name, text){
 $("go").addEventListener("click", ()=>{
   let leadKey=$("lead").value;
   if(leadKey==="random"){ const pool=Object.keys(LEADS).filter(k=>k!=="default"); leadKey=pool[Math.floor(Math.random()*pool.length)]; }
-  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,leadKey,$("style").value,$("arc").value,$("number").value);
+  const r=compileKpaw($("animal").value,$("situation").value,$("detail").value,$("emotion").value,$("age").value,leadKey,$("style").value,$("arc").value,$("number").value,$("beatless").checked);
   render(r);
 });
 </script>
